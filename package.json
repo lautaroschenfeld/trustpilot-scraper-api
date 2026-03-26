@@ -1,0 +1,21 @@
+{
+  "name": "trustpilot-api",
+  "version": "1.0.0",
+  "description": "Trustpilot private scraper API (Node.js)",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "fastify": "^5.6.1",
+    "pg": "^8.16.3",
+    "playwright": "^1.56.1",
+    "tldts": "^7.0.19"
+  }
+}
