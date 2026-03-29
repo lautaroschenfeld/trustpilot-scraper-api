@@ -58,6 +58,16 @@ const companyToProfile = (company) => ({
   },
 });
 
+export const countryCodeToFlagEmoji = (countryCode) => {
+  if (typeof countryCode !== "string") return null;
+  const normalized = countryCode.trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(normalized)) return null;
+  const REGIONAL_INDICATOR_BASE = 127397;
+  return String.fromCodePoint(
+    ...normalized.split("").map((char) => char.charCodeAt(0) + REGIONAL_INDICATOR_BASE)
+  );
+};
+
 const mapReviewPayload = (row, includeReplies) => {
   const reply =
     includeReplies && (row.replyBody || row.replyPublishedAt)
@@ -77,6 +87,7 @@ const mapReviewPayload = (row, includeReplies) => {
     reviewer: {
       display_name: row.reviewerDisplayName,
       country_code: row.reviewerCountryCode,
+      country_emoji: countryCodeToFlagEmoji(row.reviewerCountryCode),
       review_count: row.reviewerReviewCount,
     },
     verification: {
