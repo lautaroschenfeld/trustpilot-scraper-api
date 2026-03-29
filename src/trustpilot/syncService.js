@@ -200,12 +200,17 @@ export class TrustpilotSyncService {
         pageReviews = pageReviews.filter((item) => !existingIds.has(item.review_id));
       }
 
+      let addedThisPage = 0;
       for (const review of pageReviews) {
+        if (!review?.review_id) continue;
+        if (keepIds.has(review.review_id)) continue;
         scrapedReviews.push(review);
         keepIds.add(review.review_id);
+        addedThisPage += 1;
       }
 
       if (mode === "incremental" && seenKnown) break;
+      if (addedThisPage === 0) break;
     }
 
     const upsertedReviews = await upsertReviews(this.db, {
