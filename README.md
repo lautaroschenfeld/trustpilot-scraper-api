@@ -4,18 +4,6 @@ Private API to fetch Trustpilot company data using only `domain` as public input
 
 Designed for high usage with a minimal Node stack and stable response contracts.
 
-## Why this API
-
-This project solves the hard parts behind Trustpilot scraping:
-
-- strict domain normalization (dirty input -> registrable domain)
-- strict profile matching (no guessing, no fuzzy fallback)
-- scraper-first refresh + DB fallback
-- retries with backoff + jitter
-- temporary circuit breaker on repeated failures
-- confidence-gated parsing to avoid corrupt DB writes
-- latest-known-state persistence (no history versions)
-
 ## Minimal stack
 
 Only the essentials:
