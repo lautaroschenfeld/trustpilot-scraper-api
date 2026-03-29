@@ -87,6 +87,21 @@ const defaultServiceFactory = () => new TrustpilotQueryService({ db: pool });
 export async function trustpilotRoutes(fastify, opts = {}) {
   const serviceFactory = opts.serviceFactory || defaultServiceFactory;
 
+  fastify.get("/health", async (request) => {
+    try {
+      await pool.query("SELECT 1");
+      return buildResponse({
+        data: { status: "ok", database: "up" },
+        meta: buildMeta({ requestId: request.id }),
+      });
+    } catch {
+      return buildResponse({
+        data: { status: "degraded", database: "down" },
+        meta: buildMeta({ requestId: request.id }),
+      });
+    }
+  });
+
   fastify.get("/profile", async (request, reply) => {
     const details = [];
     const domain = normalizeDomain(request.query?.domain || "").normalizedDomain;

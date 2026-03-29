@@ -14,12 +14,37 @@ const toFloat = (value, fallback) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const toCsvList = (value, fallback) => {
+  if (typeof value !== "string" || value.trim() === "") {
+    return fallback;
+  }
+
+  return value
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+};
+
+const normalizeDomain = (value) => value.replace(/^\.+/, "").replace(/\.+$/, "");
+
+const DEFAULT_CORS_ALLOWED_DOMAINS = [
+  "academywit.com",
+  "christianvillarwit.com",
+  "witchristianvillar.com",
+];
+
 export const config = {
   appName: process.env.APP_NAME || "Trustpilot Private API",
   appEnv: process.env.APP_ENV || "dev",
   port: toNumber(process.env.PORT, 8000),
   host: process.env.HOST || "0.0.0.0",
   apiBasePath: process.env.API_BASE_PATH || "/trustpilot",
+  corsAllowedDomains: toCsvList(
+    process.env.CORS_ALLOWED_DOMAINS,
+    DEFAULT_CORS_ALLOWED_DOMAINS
+  )
+    .map(normalizeDomain)
+    .filter(Boolean),
 
   databaseUrl:
     process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/trustpilot",

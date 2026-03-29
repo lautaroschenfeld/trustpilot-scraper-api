@@ -69,6 +69,7 @@ Health endpoint:
 | `PORT` | No | `8000` | HTTP port |
 | `HOST` | No | `0.0.0.0` | Bind host |
 | `API_BASE_PATH` | No | `/trustpilot` | API prefix |
+| `CORS_ALLOWED_DOMAINS` | No | `academywit.com,christianvillarwit.com,witchristianvillar.com` | Comma-separated domain whitelist for browser origins (supports subdomains like `www`) |
 | `DATABASE_URL` | No* | `postgresql://postgres:postgres@localhost:5432/trustpilot` | PostgreSQL connection |
 | `TRUSTPILOT_BASE_URL` | No | `https://www.trustpilot.com` | Trustpilot base URL |
 | `USER_AGENT` | No | Chrome-like UA | Scraper user-agent |

@@ -1,15 +1,50 @@
 import Fastify from "fastify";
 import crypto from "node:crypto";
+import cors from "@fastify/cors";
 
 import { config } from "./config.js";
 import { pool } from "./db/pool.js";
 import { AppError, buildErrorPayload } from "./errors.js";
 import { trustpilotRoutes } from "./routes/trustpilot.js";
 
+const isCorsOriginAllowed = (origin, allowedDomains) => {
+  if (typeof origin !== "string") return false;
+
+  let parsedOrigin;
+  try {
+    parsedOrigin = new URL(origin);
+  } catch {
+    return false;
+  }
+
+  if (parsedOrigin.protocol !== "http:" && parsedOrigin.protocol !== "https:") {
+    return false;
+  }
+
+  const hostname = parsedOrigin.hostname.toLowerCase();
+  return allowedDomains.some(
+    (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
+  );
+};
+
 export const buildApp = () => {
   const app = Fastify({
     logger: true,
     genReqId: () => `req_${crypto.randomUUID().replaceAll("-", "")}`,
+  });
+
+  app.register(cors, {
+    methods: ["GET", "HEAD", "POST", "OPTIONS"],
+    allowedHeaders: ["Accept", "Content-Type", "Authorization"],
+    maxAge: 86400,
+    origin: (origin, callback) => {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      callback(null, isCorsOriginAllowed(origin, config.corsAllowedDomains));
+    },
   });
 
   app.register(async (instance) => {
