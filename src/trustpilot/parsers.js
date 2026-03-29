@@ -138,13 +138,18 @@ const extractRatingDistribution = (objects) => {
   return [5, 4, 3, 2, 1].map((stars) => ({ stars, count: buckets.get(stars) || 0 }));
 };
 
-const looksLikeNotFoundPage = (html) => {
-  const marker = html.toLowerCase();
+const looksLikeNotFoundPage = ({ rawHtml, nextData }) => {
+  if (nextData && typeof nextData === "object") {
+    if (nextData.page === "/_error") return true;
+    if (nextData.notFound === true) return true;
+    const pageStatus = Number(nextData.props?.pageProps?.statusCode);
+    if (Number.isFinite(pageStatus) && (pageStatus === 404 || pageStatus === 410)) return true;
+  }
+
+  const marker = rawHtml.toLowerCase();
   return (
-    marker.includes("error 404") ||
-    marker.includes("page not found") ||
-    marker.includes("we couldn't find") ||
     marker.includes("business not found") ||
+    marker.includes("profile not found") ||
     marker.includes("review not found")
   );
 };
@@ -242,7 +247,7 @@ export const parseProfileHtml = ({ domain, rawHtml, finalUrl }) => {
 
   const warnings = [];
   if (profileDomainFromUrl !== domain) warnings.push("domain_mismatch");
-  if (looksLikeNotFoundPage(rawHtml)) warnings.push("possible_not_found");
+  if (looksLikeNotFoundPage({ rawHtml, nextData })) warnings.push("possible_not_found");
   if (coverage < 0.5) warnings.push("low_field_coverage");
 
   return {
@@ -289,23 +294,43 @@ const normalizeReview = (input) => {
     url = `https://www.trustpilot.com${url}`;
   }
   const reviewId = input.review_id || input.id || input.reviewId || (url ? url.match(reviewIdFromUrlRegex)?.[1] : null);
+  if (!url && reviewId) {
+    url = `https://www.trustpilot.com/reviews/${reviewId}`;
+  }
   if (!reviewId || !url) return null;
 
   const replyObj = input.response || input.reply || input.merchantResponse || null;
   let reply = null;
   if (replyObj && typeof replyObj === "object") {
     const body = replyObj.text || replyObj.body || null;
-    const publishedAt = toIso(replyObj.datePublished || replyObj.createdAt || replyObj.published_at);
+    const publishedAt = toIso(
+      replyObj.datePublished ||
+        replyObj.createdAt ||
+        replyObj.published_at ||
+        replyObj.publishedDate ||
+        replyObj.createdDateTime,
+    );
     if (body || publishedAt) {
       reply = { body, published_at: publishedAt };
     }
   }
 
-  const author = input.author && typeof input.author === "object" ? input.author : {};
+  const author =
+    input.author && typeof input.author === "object"
+      ? input.author
+      : input.consumer && typeof input.consumer === "object"
+        ? input.consumer
+        : {};
   const verification = input.verification && typeof input.verification === "object" ? input.verification : {};
+  const labelsVerification =
+    input.labels && typeof input.labels === "object" && input.labels.verification
+      ? input.labels.verification
+      : {};
   const verified =
     typeof verification.verified === "boolean"
       ? verification.verified
+      : typeof labelsVerification.isVerified === "boolean"
+        ? labelsVerification.isVerified
       : typeof input.isVerified === "boolean"
         ? input.isVerified
         : typeof input.verified === "boolean"
@@ -314,6 +339,8 @@ const normalizeReview = (input) => {
   const invited =
     typeof verification.invited === "boolean"
       ? verification.invited
+      : typeof labelsVerification.verificationSource === "string"
+        ? labelsVerification.verificationSource.toLowerCase() === "invitation"
       : typeof input.isInvited === "boolean"
         ? input.isInvited
         : typeof input.invited === "boolean"
@@ -326,12 +353,22 @@ const normalizeReview = (input) => {
     title: input.title || input.headline || null,
     body: input.reviewBody || input.text || input.body || input.content || null,
     rating: toInt(input.rating || input.stars || input.reviewRating?.ratingValue || input.reviewRating?.value),
-    published_at: toIso(input.datePublished || input.publishedDate || input.createdAt || input.published_at),
-    experienced_at: toDate(input.dateOfExperience || input.experienceDate || input.experienced_at),
+    published_at: toIso(
+      input.datePublished ||
+        input.publishedDate ||
+        input.createdAt ||
+        input.published_at ||
+        input.dates?.publishedDate ||
+        input.dates?.updatedDate ||
+        input.dates?.submittedDate,
+    ),
+    experienced_at: toDate(
+      input.dateOfExperience || input.experienceDate || input.experienced_at || input.dates?.experiencedDate,
+    ),
     reviewer: {
-      display_name: author.name || input.consumerDisplayName || null,
+      display_name: author.displayName || author.name || input.consumerDisplayName || null,
       country_code: author.countryCode || input.consumerCountryCode || null,
-      review_count: toInt(author.reviewCount || input.consumerReviewCount),
+      review_count: toInt(author.numberOfReviews || author.reviewCount || input.consumerReviewCount),
     },
     verification: {
       verified,

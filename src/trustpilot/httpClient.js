@@ -25,8 +25,8 @@ export const buildProfileUrl = (domain) => `${config.trustpilotBaseUrl}/review/$
 
 export const buildReviewsUrl = (domain, page) =>
   page <= 1
-    ? `${config.trustpilotBaseUrl}/review/${domain}`
-    : `${config.trustpilotBaseUrl}/review/${domain}?page=${page}`;
+    ? `${config.trustpilotBaseUrl}/review/${domain}?languages=all`
+    : `${config.trustpilotBaseUrl}/review/${domain}?languages=all&page=${page}`;
 
 export const fetchUrlHttp = async (url, timeoutSeconds) => {
   const timeoutMs = Math.max(1, timeoutSeconds) * 1000;
