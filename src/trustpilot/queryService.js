@@ -68,7 +68,84 @@ export const countryCodeToFlagEmoji = (countryCode) => {
   );
 };
 
+const toAbsoluteUrl = (value) => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  if (trimmed.startsWith("//")) {
+    return `https:${trimmed}`;
+  }
+  if (trimmed.startsWith("/")) {
+    return `https://www.trustpilot.com${trimmed}`;
+  }
+
+  try {
+    return new URL(trimmed).toString();
+  } catch {
+    return null;
+  }
+};
+
+const pickAvatarFromObject = (input) => {
+  if (!input || typeof input !== "object") return null;
+
+  const candidates = [
+    input.profileImageUrl,
+    input.profileImageURL,
+    input.profile_image_url,
+    input.avatarUrl,
+    input.avatarURL,
+    input.avatar_url,
+    input.imageUrl,
+    input.imageURL,
+    input.image_url,
+    input.pictureUrl,
+    input.pictureURL,
+    input.picture_url,
+    input.photoUrl,
+    input.photoURL,
+    input.photo_url,
+  ];
+
+  for (const candidate of candidates) {
+    const parsed = toAbsoluteUrl(candidate);
+    if (parsed) return parsed;
+  }
+
+  const imageValue = input.image;
+  if (typeof imageValue === "string") {
+    const parsed = toAbsoluteUrl(imageValue);
+    if (parsed) return parsed;
+  }
+  if (imageValue && typeof imageValue === "object") {
+    const parsed =
+      toAbsoluteUrl(imageValue.url) ||
+      toAbsoluteUrl(imageValue.src) ||
+      toAbsoluteUrl(imageValue.imageUrl);
+    if (parsed) return parsed;
+  }
+
+  return null;
+};
+
+export const extractReviewerAvatarUrl = (rawReviewJson) => {
+  if (!rawReviewJson || typeof rawReviewJson !== "object") return null;
+
+  const rootAvatar = pickAvatarFromObject(rawReviewJson);
+  if (rootAvatar) return rootAvatar;
+
+  const authorAvatar = pickAvatarFromObject(rawReviewJson.author);
+  if (authorAvatar) return authorAvatar;
+
+  const consumerAvatar = pickAvatarFromObject(rawReviewJson.consumer);
+  if (consumerAvatar) return consumerAvatar;
+
+  return null;
+};
+
 const mapReviewPayload = (row, includeReplies) => {
+  const reviewerAvatarUrl = extractReviewerAvatarUrl(row.rawReviewJson);
   const reply =
     includeReplies && (row.replyBody || row.replyPublishedAt)
       ? {
@@ -88,6 +165,7 @@ const mapReviewPayload = (row, includeReplies) => {
       display_name: row.reviewerDisplayName,
       country_code: row.reviewerCountryCode,
       country_emoji: countryCodeToFlagEmoji(row.reviewerCountryCode),
+      avatar_url: reviewerAvatarUrl,
       review_count: row.reviewerReviewCount,
     },
     verification: {
